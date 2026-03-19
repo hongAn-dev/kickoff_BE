@@ -9,7 +9,7 @@ public class BackendApplication {
 
     public static void main(String[] args) {
         // 1. Log current working directory for debugging
-        System.out.println("📂 Current Working Directory: " + System.getProperty("user.dir"));
+        System.out.println("Current Working Directory: " + System.getProperty("user.dir"));
 
         // 2. Load Dotenv (ignore if missing, useful for cloud deployment)
         Dotenv dotenv = Dotenv.configure()

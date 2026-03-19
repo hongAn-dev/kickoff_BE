@@ -32,6 +32,17 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return ErrorResponse.builder()
+                .status(404)
+                .message("Resource not found")
+                .error(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleValidation(MethodArgumentNotValidException ex) {
