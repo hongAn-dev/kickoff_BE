@@ -1,0 +1,285 @@
+{
+  "info": {
+    "name": "Kickoff-BE Situation Notification",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Cán Bộ Mới\",\n    \"email\": \"canbo@gmail.com\",\n    \"password\": \"123456\",\n    \"donViId\": 99,\n    \"role\": \"ROLE_CBCT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"canbo@gmail.com\",\n    \"password\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Thong Bao Tinh Hinh",
+      "item": [
+        {
+          "name": "Get List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh?size=20&sort=ngayThongBao,desc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh"],
+              "query": [
+                {"key": "size", "value": "20"},
+                {"key": "sort", "value": "ngayThongBao,desc"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Thong Bao (Multipart)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "data",
+                  "value": "{\"tieuDe\":\"Báo cáo mật từ Postman\",\"phanLoaiId\":1,\"phamVi\":\"NOI_BO_CUC\",\"ngayThongBao\":\"2026-03-24\",\"noiDung\":\"<h2>Chi tiết</h2><p>Có diễn biến mới</p>\",\"ghiChu\":\"Văn bản khẩn\"}",
+                  "type": "text",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh"]
+            }
+          }
+        },
+        {
+          "name": "Get Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/REPLACE_WITH_UUID",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "REPLACE_WITH_UUID"]
+            }
+          }
+        },
+        {
+          "name": "Update Thong Bao (Multipart)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "data",
+                  "value": "{\"tieuDe\":\"Báo cáo mật đã cập nhật\",\"phanLoaiId\":1,\"phamVi\":\"NOI_BO_CUC\",\"ngayThongBao\":\"2026-03-24\",\"noiDung\":\"Đã update\",\"ghiChu\":\"\"}",
+                  "type": "text",
+                  "contentType": "application/json"
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/REPLACE_WITH_UUID",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "REPLACE_WITH_UUID"]
+            }
+          }
+        },
+        {
+          "name": "Delete Thong Bao",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/REPLACE_WITH_UUID",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "REPLACE_WITH_UUID"]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/REPLACE_WITH_UUID/audit-logs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "REPLACE_WITH_UUID", "audit-logs"]
+            }
+          }
+        },
+        {
+          "name": "Export Excel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/export",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "export"]
+            }
+          }
+        },
+        {
+          "name": "Import Excel - PREVIEW",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/import/preview",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "import", "preview"]
+            }
+          }
+        },
+        {
+          "name": "Import Excel - COMMIT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_TOKEN_HERE"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n    {\n        \"rowNumber\": 2,\n        \"tieuDe\": \"Văn bản A\",\n        \"phanLoaiId\": 1,\n        \"phamVi\": \"NOI_BO_CUC\",\n        \"ngayThongBao\": \"24/03/2026\",\n        \"noiDung\": \"test\",\n        \"ghiChu\": \"\",\n        \"valid\": true,\n        \"errors\": []\n    }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/thong-bao-tinh-hinh/import/commit",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "thong-bao-tinh-hinh", "import", "commit"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

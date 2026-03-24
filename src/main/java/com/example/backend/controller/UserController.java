@@ -11,11 +11,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.backend.common.ApiResponse;
 import com.example.backend.dto.request.UserRequest;
-import com.example.backend.dto.response.ApiResponse;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.service.UserService;
 
@@ -30,53 +38,33 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ApiResponse<List<UserResponse>> getUsers() {
-        return ApiResponse.<List<UserResponse>>builder()
-                .status(200)
-                .message("Get users success")
-                .data(userService.getAllUsers())
-                .build();
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getUsers() {
+        return ResponseEntity.ok(ApiResponse.success("Get users success", userService.getAllUsers()));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<UserResponse> getUser(@PathVariable("id") Long id) {
-        return ApiResponse.<UserResponse>builder()
-                .status(200)
-                .message("Get user success")
-                .data(userService.getUserById(id))
-                .build();
+    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Get user success", userService.getUserById(id)));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
-        return ApiResponse.<UserResponse>builder()
-                .status(201)
-                .message("User created")
-                .data(userService.createUser(request))
-                .build();
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("User created", userService.createUser(request)));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<UserResponse> updateUser(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable("id") Long id,
             @Valid @RequestBody UserRequest request) {
 
-        return ApiResponse.<UserResponse>builder()
-                .status(200)
-                .message("User updated")
-                .data(userService.updateUser(id, request))
-                .build();
+        return ResponseEntity.ok(ApiResponse.success("User updated", userService.updateUser(id, request)));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> deleteUser(@PathVariable("id") Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable("id") Long id) {
         userService.deleteUser(id);
-
-        return ApiResponse.<Void>builder()
-                .status(204)
-                .message("User deleted")
-                .data(null)
-                .build();
+        return ResponseEntity.ok(ApiResponse.success("User deleted", null));
     }
 }
