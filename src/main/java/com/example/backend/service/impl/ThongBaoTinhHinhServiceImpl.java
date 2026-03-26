@@ -216,7 +216,7 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
         // Cả CBCT và Trưởng phòng/Thủ trưởng đều không được sửa chéo (trừ khi có rule khác)
         // Rule hiện tại: Update/Delete phải check thongBao.donViId == currentUser.donViId
         if (!thongBao.getDonViId().equals(currentUser.getDonViId())) {
-            throw new RuntimeException("Truy cập bị từ chối: Bạn không phải chủ sở hữu của thông báo này.");
+            throw new AccessDeniedException("Truy cập bị từ chối: Bản ghi này thuộc đơn vị khác.");
         }
     }
 
@@ -252,10 +252,18 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
 
     @Override
     public List<ThongBaoAuditLog> getAuditLogs(UUID id) {
+        ThongBaoTinhHinh thongBao = findEntityById(id);
         String role = getCurrentUserRole();
-        if (!role.equals("ROLE_TRUONG_PHONG") && !role.equals("ROLE_THU_TRUONG")) {
-            throw new AccessDeniedException("Bạn không có quyền xem lịch sử thay đổi (Yêu cầu quyền Trưởng phòng)");
+        
+        // Phân quyền xem Log:
+        // - Trưởng phòng/Thủ trưởng: Xem được tất cả các đơn vị
+        // - Cán bộ (CBCT): Chỉ xem được Log của bản ghi thuộc đơn vị mình
+        if (role.equals("ROLE_CBCT")) {
+            checkOwnershipPermission(thongBao);
+        } else if (!role.equals("ROLE_TRUONG_PHONG") && !role.equals("ROLE_THU_TRUONG")) {
+            throw new AccessDeniedException("Bạn không có quyền xem lịch sử thay đổi (Yêu cầu quyền Cán bộ hoặc Trưởng phòng)");
         }
+        
         return auditLogService.getLogsByRecordId(id);
     }
 }
