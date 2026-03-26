@@ -58,6 +58,17 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return ErrorResponse.builder()
+                .status(403)
+                .message("Bạn không có quyền thực hiện thao tác này")
+                .error(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleAll(Exception ex) {

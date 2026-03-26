@@ -28,8 +28,13 @@ public class ThongBaoExcelDto {
     private String noiDung;
     private String ghiChu;
     
-    @Builder.Default
-    private Boolean isValid = true;
+    @JsonProperty("valid")
+    private Boolean valid;
+
+    @JsonProperty("isValid")
+    private Boolean isValid;
+
+    private String status;
     @Builder.Default
     private List<String> errors = new ArrayList<>();
 }

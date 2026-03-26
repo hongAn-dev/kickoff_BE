@@ -35,17 +35,34 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
             Sheet sheet = workbook.getSheetAt(0);
             
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Bỏ qua Header
+            int lastRow = sheet.getLastRowNum();
+            log.info("Sheet has {} total rows (0-indexed)", lastRow);
+
+            for (int i = 0; i <= lastRow; i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String firstCell = dataFormatter.formatCellValue(row.getCell(0)).toLowerCase();
+                // Bỏ qua dòng tiêu đề nếu chứa các từ khóa tiêu đề hoặc trống hoàn toàn
+                if (i == 0 && (firstCell.contains("tiêu đề") || firstCell.contains("stt"))) {
+                    log.info("Skipping header row at index 0");
+                    continue;
+                }
+                
+                if (firstCell.isEmpty() && dataFormatter.formatCellValue(row.getCell(1)).isEmpty()) {
+                    continue; // Bỏ qua dòng trắng
+                }
 
                 ThongBaoExcelDto dto = new ThongBaoExcelDto();
-                dto.setRowNumber(row.getRowNum() + 1);
+                dto.setRowNumber(i + 1);
                 List<String> errors = new ArrayList<>();
+
+                log.info("Processing Excel Row {} (POI Row {}):", dto.getRowNumber(), i);
 
                 // Cột 0: Tiêu đề
                 String tieuDe = dataFormatter.formatCellValue(row.getCell(0));
                 dto.setTieuDe(tieuDe);
-                if (tieuDe == null || tieuDe.trim().isEmpty()) {
+                if (tieuDe == null || tieuDe.trim().isEmpty() || tieuDe.contains("(Để trống)") || tieuDe.contains("(?? tr?ng)")) {
                     errors.add("Tiêu đề không được để trống");
                 }
 
@@ -56,10 +73,10 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                     errors.add("Phân loại ID không được để trống");
                 } else {
                     try {
-                        Integer plId = Integer.parseInt(phanLoaiStr);
+                        Integer plId = Integer.parseInt(phanLoaiStr.replaceAll("[^0-9]", ""));
                         dto.setPhanLoaiId(plId);
-                    } catch (NumberFormatException e) {
-                        errors.add("Phân loại ID phải là số nguyên");
+                    } catch (Exception e) {
+                        errors.add("Phân loại ID phải là số nguyên (Giá trị hiện tại: " + phanLoaiStr + ")");
                     }
                 }
 
@@ -70,22 +87,31 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                     errors.add("Phạm vi không được để trống");
                 } else {
                     try {
-                        PhamVi.valueOf(phamViStr.trim().toUpperCase());
+                        String normalized = phamViStr.trim().toUpperCase();
+                        if (normalized.equals("TOAN_QUOC") || normalized.equals("TOÀN QUỐC")) {
+                            normalized = "TOAN_NGANH";
+                        }
+                        PhamVi.valueOf(normalized);
                     } catch (IllegalArgumentException e) {
-                        errors.add("Phạm vi không hợp lệ (Mẫu: NOI_BO_CUC, TOAN_QUOC)");
+                        errors.add("Phạm vi không hợp lệ: " + phamViStr);
                     }
                 }
 
                 // Cột 3: Ngày thông báo
                 String ngayStr = dataFormatter.formatCellValue(row.getCell(3));
                 dto.setNgayThongBao(ngayStr);
+                
+                log.info(" - Tieu De: '{}' | Phan Loai: '{}' | Pham Vi: '{}' | Ngay: '{}'", tieuDe, phanLoaiStr, phamViStr, ngayStr);
+
                 if (ngayStr == null || ngayStr.trim().isEmpty()) {
                     errors.add("Ngày thông báo không được để trống");
                 } else {
                     try {
-                        LocalDate.parse(ngayStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                        String cleanNgay = ngayStr.trim();
+                        // Thử parse với dd/MM/yyyy
+                        LocalDate.parse(cleanNgay, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
                     } catch (DateTimeParseException e) {
-                        errors.add("Ngày thông báo cần theo chuẩn dd/MM/yyyy");
+                        errors.add("Ngày thông báo sai chuẩn dd/MM/yyyy: " + ngayStr);
                     }
                 }
 
@@ -94,7 +120,15 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                 dto.setGhiChu(dataFormatter.formatCellValue(row.getCell(5)));
 
                 dto.setErrors(errors);
-                dto.setIsValid(errors.isEmpty());
+                boolean isValid = errors.isEmpty();
+                dto.setValid(isValid);
+                dto.setIsValid(isValid);
+                dto.setStatus(isValid ? "HỢP LỆ" : "KHÔNG HỢP LỆ");
+                
+                if (!isValid) {
+                    log.error("Row {} is INVALID. Errors: {}", dto.getRowNumber(), errors);
+                }
+
                 result.add(dto);
             }
 
@@ -115,9 +149,9 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         log.info("Bắt đầu commit import Excel cho userId: {}, donViId: {}, tổng số dòng: {}", userId, donViId, dataList.size());
         
         for (ThongBaoExcelDto dto : dataList) {
-            // Sửa logic: Chỉ bỏ qua nếu isValid là FALSE. Nếu là null (người dùng không gửi) thì vẫn coi là true.
-            if (Boolean.FALSE.equals(dto.getIsValid())) {
-                log.warn("Bỏ qua dòng {} do isValid = false", dto.getRowNumber());
+            // Sửa logic: Chỉ bỏ qua nếu valid là FALSE. Nếu là null (người dùng không gửi) thì vẫn coi là true.
+            if (Boolean.FALSE.equals(dto.getValid())) {
+                log.warn("Bỏ qua dòng {} do valid = false", dto.getRowNumber());
                 skipCount++;
                 continue;
             }

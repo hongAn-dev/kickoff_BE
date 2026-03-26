@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.backend.entity.ThongBaoAuditLog;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,4 +27,6 @@ public interface ThongBaoTinhHinhService {
     void deleteThongBao(UUID id);
 
     ThongBaoFile getFileById(UUID fileId);
+
+    List<ThongBaoAuditLog> getAuditLogs(UUID id);
 }

@@ -131,7 +131,7 @@ public class ThongBaoTinhHinhController {
 
     @GetMapping("/{id}/audit-logs")
     public ResponseEntity<ApiResponse<List<ThongBaoAuditLog>>> getAuditLogs(@PathVariable UUID id) {
-        List<ThongBaoAuditLog> logs = auditLogService.getLogsByRecordId(id);
+        List<ThongBaoAuditLog> logs = thongBaoService.getAuditLogs(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử thay đổi thành công", logs));
     }
 

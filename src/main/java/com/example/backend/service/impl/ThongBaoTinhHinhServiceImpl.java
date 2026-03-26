@@ -18,6 +18,8 @@ import com.example.backend.entity.ThongBaoFile;
 import com.example.backend.specification.ThongBaoSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.example.backend.entity.ThongBaoAuditLog;
+import org.springframework.security.access.AccessDeniedException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -119,6 +121,11 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     @Override
     @Transactional
     public ThongBaoTinhHinh createThongBao(ThongBaoRequest request, List<MultipartFile> files) {
+        String role = getCurrentUserRole();
+        if (!role.equals("ROLE_CBCT") && !role.equals("ROLE_TRUONG_PHONG")) {
+            throw new AccessDeniedException("Bạn không có quyền tạo thông báo mới");
+        }
+
         UserDetailsImpl currentUser = getCurrentUser();
         
         ThongBaoTinhHinh thongBao = ThongBaoTinhHinh.builder()
@@ -144,6 +151,11 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     @Override
     @Transactional
     public ThongBaoTinhHinh updateThongBao(UUID id, ThongBaoRequest request, List<MultipartFile> files) {
+        String role = getCurrentUserRole();
+        if (!role.equals("ROLE_CBCT")) {
+            throw new AccessDeniedException("Chỉ Cán bộ chuyên trách mới có quyền cập nhật thông báo");
+        }
+
         ThongBaoTinhHinh existing = findEntityById(id);
         
         checkOwnershipPermission(existing);
@@ -166,6 +178,11 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     @Override
     @Transactional
     public void deleteThongBao(UUID id) {
+        String role = getCurrentUserRole();
+        if (!role.equals("ROLE_CBCT")) {
+            throw new AccessDeniedException("Chỉ Cán bộ chuyên trách mới có quyền xóa thông báo");
+        }
+
         ThongBaoTinhHinh existing = findEntityById(id);
         
         // CHỐT CHẶN BẢO MẬT: Phải thuộc đúng Đơn vị mới được xóa
@@ -231,5 +248,14 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     public ThongBaoFile getFileById(UUID fileId) {
         return fileRepository.findById(fileId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy file đính kèm với ID: " + fileId));
+    }
+
+    @Override
+    public List<ThongBaoAuditLog> getAuditLogs(UUID id) {
+        String role = getCurrentUserRole();
+        if (!role.equals("ROLE_TRUONG_PHONG") && !role.equals("ROLE_THU_TRUONG")) {
+            throw new AccessDeniedException("Bạn không có quyền xem lịch sử thay đổi (Yêu cầu quyền Trưởng phòng)");
+        }
+        return auditLogService.getLogsByRecordId(id);
     }
 }

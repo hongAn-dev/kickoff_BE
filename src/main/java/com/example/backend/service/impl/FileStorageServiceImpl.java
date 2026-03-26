@@ -1,5 +1,7 @@
 package com.example.backend.service.impl;
 
+import java.util.Arrays;
+
 import com.example.backend.entity.ThongBaoFile;
 import com.example.backend.repository.ThongBaoFileRepository;
 import com.example.backend.service.FileStorageService;
@@ -31,6 +33,7 @@ public class FileStorageServiceImpl implements FileStorageService {
     private final ThongBaoFileRepository thongBaoFileRepository;
     
     private final String uploadDir = "uploads";
+    private final List<String> allowedExtensions = Arrays.asList("pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg", "webp");
 
     @Override
     public String storeFile(MultipartFile file) {
@@ -41,6 +44,12 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
 
             String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+            String extension = StringUtils.getFilenameExtension(originalFilename);
+
+            if (extension == null || !allowedExtensions.contains(extension.toLowerCase())) {
+                throw new RuntimeException("Định dạng file không được hỗ trợ: " + extension);
+            }
+
             String fileName = UUID.randomUUID().toString() + "_" + originalFilename;
 
             Path targetLocation = uploadPath.resolve(fileName);
