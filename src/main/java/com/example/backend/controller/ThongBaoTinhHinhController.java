@@ -1,4 +1,6 @@
 package com.example.backend.controller;
+import com.example.backend.dto.response.ThongBaoDetailResponse;
+
 
 import com.example.backend.common.ApiResponse;
 import com.example.backend.dto.request.ThongBaoRequest;
@@ -41,6 +43,7 @@ public class ThongBaoTinhHinhController {
     private final ExcelExportService excelExportService;
     private final ExcelImportService excelImportService;
     private final AuditLogService auditLogService;
+    private final com.example.backend.service.FileStorageService fileStorageService;
 
     // Lấy thông tin User đang đăng nhập bảo mật
     private UserDetailsImpl getCurrentUser() {
@@ -61,8 +64,8 @@ public class ThongBaoTinhHinhController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ThongBaoTinhHinh>> getThongBaoById(@PathVariable UUID id) {
-        ThongBaoTinhHinh result = thongBaoService.getThongBaoById(id);
+    public ResponseEntity<ApiResponse<ThongBaoDetailResponse>> getThongBaoById(@PathVariable UUID id) {
+        ThongBaoDetailResponse result = thongBaoService.getThongBaoById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết thông báo thành công", result));
     }
 
@@ -70,6 +73,7 @@ public class ThongBaoTinhHinhController {
     public ResponseEntity<ApiResponse<ThongBaoTinhHinh>> createThongBao(
             @RequestPart("data") @Valid ThongBaoRequest request,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        System.out.println(">>> RECEIVED CREATE REQUEST: " + request.getTieuDe());
         ThongBaoTinhHinh result = thongBaoService.createThongBao(request, files);
         return ResponseEntity.ok(ApiResponse.success("Tạo thông báo mới thành công", result));
     }
@@ -129,6 +133,22 @@ public class ThongBaoTinhHinhController {
     public ResponseEntity<ApiResponse<List<ThongBaoAuditLog>>> getAuditLogs(@PathVariable UUID id) {
         List<ThongBaoAuditLog> logs = auditLogService.getLogsByRecordId(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử thay đổi thành công", logs));
+    }
+
+    @GetMapping("/attachments/{fileId}")
+    public ResponseEntity<org.springframework.core.io.Resource> downloadAttachment(@PathVariable UUID fileId) {
+        try {
+            com.example.backend.entity.ThongBaoFile fileMeta = thongBaoService.getFileById(fileId);
+            org.springframework.core.io.Resource resource = fileStorageService.loadFileAsResource(fileMeta.getFilePath());
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(fileMeta.getMimeType() != null ? fileMeta.getMimeType() : "application/octet-stream"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileMeta.getFileName() + "\"")
+                    .body(resource);
+        } catch (Exception e) {
+            // Trả về 404 nếu không tìm thấy file vật lý hoặc có lỗi xảy ra
+            return ResponseEntity.notFound().build();
+        }
     }
 }
 

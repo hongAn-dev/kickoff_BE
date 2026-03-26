@@ -23,7 +23,7 @@ public class JwtUtils {
     private int jwtExpirationMs;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        byte[] keyBytes = jwtSecret.getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 

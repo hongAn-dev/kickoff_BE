@@ -11,7 +11,9 @@ import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -104,22 +106,49 @@ public class ExcelImportServiceImpl implements ExcelImportService {
     }
 
     @Override
+    @Transactional
     public void commitImport(List<ThongBaoExcelDto> dataList, Long userId, Long donViId) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        int successCount = 0;
+        int skipCount = 0;
+
+        log.info("Bắt đầu commit import Excel cho userId: {}, donViId: {}, tổng số dòng: {}", userId, donViId, dataList.size());
         
         for (ThongBaoExcelDto dto : dataList) {
-            if (dto.getIsValid() == null || !dto.getIsValid()) continue; // Bỏ qua dữ liệu lỗi
+            // Sửa logic: Chỉ bỏ qua nếu isValid là FALSE. Nếu là null (người dùng không gửi) thì vẫn coi là true.
+            if (Boolean.FALSE.equals(dto.getIsValid())) {
+                log.warn("Bỏ qua dòng {} do isValid = false", dto.getRowNumber());
+                skipCount++;
+                continue;
+            }
 
-            ThongBaoRequest req = new ThongBaoRequest();
-            req.setTieuDe(dto.getTieuDe());
-            req.setPhanLoaiId(dto.getPhanLoaiId());
-            req.setPhamVi(PhamVi.valueOf(dto.getPhamVi().trim().toUpperCase()));
-            req.setNgayThongBao(LocalDate.parse(dto.getNgayThongBao(), formatter));
-            req.setNoiDung(dto.getNoiDung());
-            req.setGhiChu(dto.getGhiChu());
+            try {
+                ThongBaoRequest req = new ThongBaoRequest();
+                req.setTieuDe(dto.getTieuDe());
+                req.setPhanLoaiId(dto.getPhanLoaiId());
+                
+                // Bổ sung null check để tránh NPE khi người dùng gửi thiếu field
+                if (dto.getPhamVi() != null) {
+                    req.setPhamVi(PhamVi.valueOf(dto.getPhamVi().trim().toUpperCase()));
+                }
+                
+                if (dto.getNgayThongBao() != null) {
+                    req.setNgayThongBao(LocalDate.parse(dto.getNgayThongBao(), formatter));
+                }
+                
+                req.setNoiDung(dto.getNoiDung());
+                req.setGhiChu(dto.getGhiChu());
 
-            // Tái sử dụng service hiện tại để đảm bảo Audit Log / Quyền hoạt động chuẩn
-            thongBaoService.createThongBao(req, null);
+                // Tái sử dụng service hiện tại để đảm bảo Audit Log / Quyền hoạt động chuẩn
+                thongBaoService.createThongBao(req, null);
+                successCount++;
+            } catch (Exception e) {
+                log.error("Lỗi khi xử lý dòng {}: {}", dto.getRowNumber(), e.getMessage());
+                throw new RuntimeException("Lỗi tại dòng " + dto.getRowNumber() + ": " + e.getMessage());
+            }
         }
+        
+        log.info("Hoàn tất commit import: Thành công {} dòng, Bỏ qua {} dòng", successCount, skipCount);
     }
 }
+

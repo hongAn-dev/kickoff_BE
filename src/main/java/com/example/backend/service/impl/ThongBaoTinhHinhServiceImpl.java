@@ -9,8 +9,16 @@ import com.example.backend.security.UserDetailsImpl;
 import com.example.backend.service.AuditLogService;
 import com.example.backend.service.FileStorageService;
 import com.example.backend.service.ThongBaoTinhHinhService;
+import com.example.backend.dto.response.ThongBaoDetailResponse;
+import com.example.backend.dto.response.ThongBaoFileResponse;
+import com.example.backend.repository.ThongBaoFileRepository;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.entity.User;
+import com.example.backend.entity.ThongBaoFile;
 import com.example.backend.specification.ThongBaoSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -20,18 +28,19 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
 
     private final ThongBaoTinhHinhRepository thongBaoRepository;
     private final AuditLogService auditLogService;
     private final FileStorageService fileStorageService;
+    private final ThongBaoFileRepository fileRepository;
+    private final UserRepository userRepository;
 
     // Lấy thông tin người dùng đang gọi API từ JWT
     private UserDetailsImpl getCurrentUser() {
@@ -59,10 +68,6 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
             // Cán bộ chuyên trách: Chỉ được xem thông báo của đơn vị mình
             spec = spec.and(ThongBaoSpecification.hasDonViIn(Collections.singletonList(currentUser.getDonViId())));
         } else if (role.equals("ROLE_TRUONG_PHONG") || role.equals("ROLE_THU_TRUONG")) {
-            // Lãnh đạo: Thường được xem toàn bộ. 
-            // Nếu có chức năng Frontend gửi danh sách đơn vị cụ thể (don_vi_ids[]) để lọc theo ý muốn,
-            // ta có thể bổ sung nhận list ID vào tham số hàm và lắp thêm mảnh ghép ở đây.
-            // Tạm thời cho xem toàn bộ.
             spec = spec.and(Specification.where((Specification<ThongBaoTinhHinh>) null)); // Không ràng buộc donViId
         }
 
@@ -70,14 +75,45 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     }
 
     @Override
-    public ThongBaoTinhHinh getThongBaoById(UUID id) {
+    public ThongBaoDetailResponse getThongBaoById(UUID id) {
         ThongBaoTinhHinh thongBao = thongBaoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông báo rủi ro với ID: " + id));
         
         // Kiểm tra quyền xem chi tiết
         checkViewPermission(thongBao);
+
+        // Lấy tên người tạo
+        String creatorName = "Chưa xác định";
+        if (thongBao.getCreatedBy() != null) {
+            creatorName = userRepository.findById(thongBao.getCreatedBy())
+                    .map(User::getName)
+                    .orElse("ID: " + thongBao.getCreatedBy());
+        }
+
+        // Mock Tên đơn vị (Tương tự Creator, search từ donViId nếu có bảng)
+        String donViName = "Đơn vị ID: " + thongBao.getDonViId();
+        if (thongBao.getDonViId() == 1L) donViName = "Cục Hải Quan (Tổng cục)";
+        else if (thongBao.getDonViId() == 10L) donViName = "Chi Cục Hải Quan Đơn vị 10";
+        else if (thongBao.getDonViId() == 20L) donViName = "Chi Cục Hải Quan Đơn vị 20";
+
+        // Lấy danh sách File
+        List<ThongBaoFileResponse> files = fileRepository.findByThongBaoId(id).stream()
+                .map(f -> ThongBaoFileResponse.builder()
+                        .id(f.getId())
+                        .fileName(f.getFileName())
+                        .filePath(f.getFilePath())
+                        .fileSize(f.getFileSize())
+                        .mimeType(f.getMimeType())
+                        .uploadedAt(f.getUploadedAt())
+                        .build())
+                .collect(Collectors.toList());
         
-        return thongBao;
+        return ThongBaoDetailResponse.builder()
+                .data(thongBao)
+                .creatorName(creatorName)
+                .donViName(donViName)
+                .files(files)
+                .build();
     }
 
     @Override
@@ -108,7 +144,7 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     @Override
     @Transactional
     public ThongBaoTinhHinh updateThongBao(UUID id, ThongBaoRequest request, List<MultipartFile> files) {
-        ThongBaoTinhHinh existing = getThongBaoById(id);
+        ThongBaoTinhHinh existing = findEntityById(id);
         
         checkOwnershipPermission(existing);
 
@@ -130,7 +166,7 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     @Override
     @Transactional
     public void deleteThongBao(UUID id) {
-        ThongBaoTinhHinh existing = getThongBaoById(id);
+        ThongBaoTinhHinh existing = findEntityById(id);
         
         // CHỐT CHẶN BẢO MẬT: Phải thuộc đúng Đơn vị mới được xóa
         checkOwnershipPermission(existing);
@@ -142,6 +178,11 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
     }
     
     // --- CÁC HÀM HỖ TRỢ / UNTILITY ---
+
+    private ThongBaoTinhHinh findEntityById(UUID id) {
+        return thongBaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông báo rủi ro với ID: " + id));
+    }
 
     private void checkViewPermission(ThongBaoTinhHinh thongBao) {
         UserDetailsImpl currentUser = getCurrentUser();
@@ -184,5 +225,11 @@ public class ThongBaoTinhHinhServiceImpl implements ThongBaoTinhHinhService {
         if (!Objects.equals(oldData.getGhiChu(), newData.getGhiChu())) {
             auditLogService.logChange(id, AuditAction.UPDATE, "ghi_chu", oldData.getGhiChu(), newData.getGhiChu());
         }
+    }
+
+    @Override
+    public ThongBaoFile getFileById(UUID fileId) {
+        return fileRepository.findById(fileId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy file đính kèm với ID: " + fileId));
     }
 }

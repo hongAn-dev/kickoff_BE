@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,8 +19,12 @@ public class ThongBaoExcelDto {
     
     private String tieuDe;
     private Integer phanLoaiId;
+    @JsonProperty("hinhThucText")
     private String phamVi;
+    
+    @JsonProperty("ngayPhatSinh")
     private String ngayThongBao;
+
     private String noiDung;
     private String ghiChu;
     

@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+
+import java.net.MalformedURLException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -75,6 +79,21 @@ public class FileStorageServiceImpl implements FileStorageService {
                     .build();
 
             thongBaoFileRepository.save(thongBaoFile);
+        }
+    }
+
+    @Override
+    public Resource loadFileAsResource(String filePath) {
+        try {
+            Path path = Paths.get(filePath);
+            Resource resource = new UrlResource(path.toUri());
+            if (resource.exists() || resource.isReadable()) {
+                return resource;
+            } else {
+                throw new RuntimeException("Không tìm thấy file hoặc file không thể đọc: " + filePath);
+            }
+        } catch (MalformedURLException ex) {
+            throw new RuntimeException("Định dạng đường dẫn file không hợp lệ: " + filePath, ex);
         }
     }
 }
